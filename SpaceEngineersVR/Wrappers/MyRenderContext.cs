@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using SharpDX;
 using SharpDX.Direct3D11;
+using SharpDX.Mathematics.Interop;
 using System;
 using System.Reflection;
 
@@ -17,8 +18,7 @@ namespace SpaceEngineersVR.Wrappers
             copyResource = AccessTools.Method(t, "CopyResource", new Type[] { tIResource, typeof(Resource) });
             mapSubresource = AccessTools.Method(t, "MapSubresource", new Type[] { typeof(Texture2D), typeof(int), typeof(int), typeof(MapMode), typeof(MapFlags), typeof(DataStream).MakeByRefType() });
             unmapSubresource = AccessTools.Method(t, "UnmapSubresource", new Type[] { typeof(Resource), typeof(int) });
-
-
+            deviceContext = AccessTools.Property(t, "DeviceContext");
         }
 
         public MyRenderContext(object instance)
@@ -54,5 +54,21 @@ namespace SpaceEngineersVR.Wrappers
         {
             unmapSubresource.Invoke(instance, new object[] { resourceRef, subresource });
         }
+
+        private static PropertyInfo deviceContext;
+
+        public DeviceContext1 DeviceContext
+        {
+            get => (DeviceContext1)deviceContext.GetValue(instance); 
+            set => deviceContext.SetValue(instance, value);
+        }
+
+        public void ClearRtv(MyBackbuffer rtv, RawColor4 colorRGBA)
+        {
+            DeviceContext1 context = (DeviceContext1)deviceContext.GetValue(instance);
+            context.ClearRenderTargetView(rtv.Rtv, colorRGBA);
+        }
+
+        
     }
 }

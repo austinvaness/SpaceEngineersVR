@@ -3,9 +3,8 @@ using Sandbox.Graphics.GUI;
 using SharpDX.Direct3D11;
 using SpaceEngineersVR.Wrappers;
 using Valve.VR;
-using VRageMath;
 
-namespace SpaceEngineersVR.Player.Components
+namespace SpaceEngineersVR.GUI
 {
     public static class VRGUIManager
     {
@@ -28,6 +27,7 @@ namespace SpaceEngineersVR.Player.Components
 
             OpenVR.Overlay.SetOverlayCurvature(overlayHandle, 0.25f);
             OpenVR.Overlay.ShowOverlay(overlayHandle);
+            MyGuiSandbox.AddScreen(new MouseOverlay());
         }
 
         //called in Headset draw method
@@ -41,7 +41,7 @@ namespace SpaceEngineersVR.Player.Components
         {
             if (IsDebugHUDEnabled && IsAnyDialogOpen())
             {
-                Texture2D guiTexture = (Texture2D)MyRender11.GetBackbuffer().GetResource();
+                Texture2D guiTexture = (Texture2D)MyRender11.Backbuffer.GetResource();
                 Texture_t textureUI = new Texture_t
                 {
                     eColorSpace = EColorSpace.Auto,
@@ -66,11 +66,12 @@ namespace SpaceEngineersVR.Player.Components
         {
             foreach (MyGuiScreenBase screen in MyScreenManager.Screens)
             {
-                if (!(screen is MyGuiScreenGamePlay) && !(screen is MyGuiScreenHudSpace))
+                if (!(screen is MyGuiScreenGamePlay) && !(screen is MyGuiScreenHudSpace) && !(screen is MouseOverlay))
                 {
                     return true;
                 }
             }
+
             return false;
         }
     }

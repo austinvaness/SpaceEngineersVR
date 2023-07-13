@@ -17,7 +17,16 @@ namespace SpaceEngineersVR.Wrappers
             Type t = AccessTools.TypeByName("VRage.Render11.Resources.MyBackbuffer");
             release = t.GetMethod("Release", BindingFlags.Public | BindingFlags.Instance);
             get_Resource = t.GetProperty("Resource", BindingFlags.Public | BindingFlags.Instance).GetGetMethod();
+            rtv = t.GetProperty("Rtv", BindingFlags.Public | BindingFlags.Instance);
         }
+
+        public static void SetBackbufferValues(MyBackbuffer instance, object targetInstance)
+        {
+            Type t = targetInstance.GetType();
+            PropertyInfo rtv = t.GetProperty("Rtv", BindingFlags.Public | BindingFlags.Instance);
+            rtv.SetValue(targetInstance, instance.Rtv);
+        }
+
 
         public MyBackbuffer(object instance)
         {
@@ -36,5 +45,12 @@ namespace SpaceEngineersVR.Wrappers
             return (Resource)get_Resource.Invoke(Instance, new object[0]);
         }
 
+        private static readonly PropertyInfo rtv;
+
+        public RenderTargetView Rtv
+        {
+            get => (RenderTargetView)rtv.GetValue(Instance);
+            set => rtv.SetValue(Instance, value);
+        }
     }
 }

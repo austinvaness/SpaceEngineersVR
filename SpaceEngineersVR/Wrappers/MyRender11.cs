@@ -3,6 +3,7 @@ using SharpDX.DXGI;
 using SpaceEngineersVR.Util;
 using System;
 using System.Reflection;
+using System.Threading.Tasks;
 using VRageMath;
 using VRageRender;
 using VRageRender.Messages;
@@ -20,12 +21,14 @@ namespace SpaceEngineersVR.Wrappers
         static MyRender11()
         {
             Type t = AccessTools.TypeByName("VRageRender.MyRender11");
+            Type iRtvBindable = AccessTools.TypeByName("VRage.Render11.Resources.IRtvBindable");
 
             m_debugOverrides = AccessTools.Field(t, "m_debugOverrides");
             m_rc = AccessTools.Field(t, "m_rc");
             settings = AccessTools.Field(t, "Settings");
             m_settings = AccessTools.Field(t, "m_settings");
             m_drawScene = AccessTools.Field(t, "m_drawScene");
+            m_mainSpritesTask = AccessTools.Field(t, "m_mainSpritesTask");
 
             setupCameraMatricesDel = (Action<MyRenderMessageSetCameraViewMatrix>)Delegate.CreateDelegate(typeof(Action<MyRenderMessageSetCameraViewMatrix>), AccessTools.Method(t, "SetupCameraMatrices"));
             createScreenResourcesDel = (Action)Delegate.CreateDelegate(typeof(Action), AccessTools.Method(t, "CreateScreenResources"));
@@ -40,20 +43,25 @@ namespace SpaceEngineersVR.Wrappers
 
             drawGameScene = AccessTools.Method(t, "DrawGameScene");
             resizeSwapChain = AccessTools.Method(t, "ResizeSwapchain");
+            consumeMainSprites = AccessTools.Method(t, "ConsumeMainSprites");
+            scaleMainViewport = AccessTools.Method(t, "ScaleMainViewport");
+            renderMainSprites = AccessTools.Method(t, "RenderMainSprites", new Type[] { iRtvBindable, typeof(MyViewport), typeof(MyViewport), typeof(Vector2), typeof(MyViewport?) });
+            renderMainSpritesWorker = AccessTools.Method(t, "RenderMainSpritesWorker");
 
             get_deviceInstance = AccessTools.Property(t, "DeviceInstance").GetGetMethod(true);
+            viewportResolution = AccessTools.Property(t, "ViewportResolution");
 
             environment = AccessTools.Field(t, "Environment");
             environment_matrices = AccessTools.Field("VRageRender.MyEnvironment:Matrices");
         }
 
-        //TODO; make delegate
         private static readonly FieldInfo backbuffer;
-        public static MyBackbuffer GetBackbuffer()
-        {
-            return new MyBackbuffer(backbuffer.GetValue(null));
-        }
 
+        public static MyBackbuffer Backbuffer
+        {
+            get => new MyBackbuffer(backbuffer.GetValue(null));
+            set => MyBackbuffer.SetBackbufferValues(value, backbuffer);
+        }
 
         private static readonly FieldInfo m_debugOverrides;
         public static MyRenderDebugOverrides DebugOverrides => (MyRenderDebugOverrides)m_debugOverrides.GetValue(null);
@@ -149,6 +157,52 @@ namespace SpaceEngineersVR.Wrappers
                 obj.TransmuteTo(new EnvironmentMatrices());
                 return (EnvironmentMatrices)obj;
             }
+        }
+
+        private static readonly MethodInfo consumeMainSprites;
+
+        public static void ConsumeMainSprites()
+        {
+            consumeMainSprites.Invoke(null, new object[0]);
+        }
+
+        private static readonly MethodInfo renderMainSprites;
+
+        public static void RenderMainSprites()
+        {
+            MyViewport myViewport = new MyViewport(ViewportResolution.X, ViewportResolution.Y);
+            Vector2 size = ViewportResolution;
+            renderMainSprites.Invoke(null, new object[] { Backbuffer.Instance, ScaleMainViewport(myViewport), myViewport, size, null });
+        }
+
+        private static readonly MethodInfo renderMainSpritesWorker;
+
+        public static void RenderMainSpritesWorker(object rtv, MyViewport viewportBound, MyViewport viewportFull, Vector2 size, object defaultMessages, object debugMessages, MyViewport? targetRegion = null)
+        {
+            renderMainSpritesWorker.Invoke(null, new object[] { rtv, viewportBound, viewportFull, size, defaultMessages, debugMessages, targetRegion });
+        }
+
+        private static readonly PropertyInfo viewportResolution;
+
+        public static Vector2I ViewportResolution
+        {
+            get => (Vector2I)viewportResolution.GetValue(null);
+            set => viewportResolution.SetValue(null, value);
+        }
+
+        private static readonly MethodInfo scaleMainViewport;
+
+        public static MyViewport ScaleMainViewport(MyViewport viewport)
+        {
+            return (MyViewport)scaleMainViewport.Invoke(null, new object[] { viewport });
+        }
+
+        private static readonly FieldInfo m_mainSpritesTask;
+
+        public static ParallelTasks.Task m_MainSpritesTask
+        {
+            get => (ParallelTasks.Task)m_mainSpritesTask.GetValue(null);
+            set => m_mainSpritesTask.SetValue(null, value);
         }
     }
 
